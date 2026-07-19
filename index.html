@@ -18,7 +18,7 @@
         #loading-message { margin: 20px 0; font-weight: bold; }
         #history-container { margin-top: 20px; text-align: left; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         h1 { font-size: 1.4em; color: #333; margin-bottom: 10px; }
-        h3 { margin-top: 0; border-bottom: 2px solid #333; padding-bottom: 5px; display: flex; justify-content: space-between; align-items: center; }
+        h3 { margin-top: 0; border-bottom: 2px solid #333; padding-bottom: 5px; }
         ul { list-style: none; padding: 0; margin: 0; }
         
         /* 履歴の枠線と長押し時の視覚効果 */
@@ -26,28 +26,38 @@
         li:active { background-color: #f5f5f5; }
         li:last-child { border-bottom: none; }
         
-        .time { font-size: 0.85em; color: #2b78e4; font-weight: bold; display: block; margin-bottom: 4px; }
-        .content { font-size: 1em; color: #333; margin-bottom: 8px; font-weight: bold; }
+        /* 💡 ② 読み取り内容を一番上（太字）に */
+        .content { font-size: 1.05em; color: #333; margin-bottom: 8px; font-weight: bold; display: block; }
         
         /* メモ入力欄のデザイン */
-        .memo-area { display: flex; gap: 8px; align-items: center; }
-        .memo-input { flex: 1; padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9em; }
+        .memo-area { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+        .memo-input { flex: 1; padding: 8px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9em; }
         .memo-input:focus { border-color: #2b78e4; outline: none; }
+
+        /* 💡 ② 日付時間のみにして、一番下へ右詰め配置 */
+        .time { font-size: 0.8em; color: #777; font-weight: normal; display: block; text-align: right; }
         
-        /* ボタン類のデザイン */
+        /* ボタン共通の基本デザイン */
         .btn-main { background: #2b78e4; color: white; border: none; padding: 15px 20px; border-radius: 8px; cursor: pointer; width: 100%; font-size: 1.2em; font-weight: bold; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .btn-main:active { transform: scale(0.98); }
-        .btn-csv { background: #00c853; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.8em; font-weight: bold; }
-        .btn-clear { background: #ff4d4d; color: white; border: none; padding: 10px 16px; border-radius: 4px; cursor: pointer; margin-top: 15px; width: 100%; font-size: 1em; font-weight: bold; }
+        
+        /* 💡 ③ CSV保存ボタンを削除ボタンと同じ大型サイズに統一（緑色） */
+        .btn-csv-large { background: #00c853; color: white; border: none; padding: 12px 16px; border-radius: 6px; cursor: pointer; width: 100%; font-size: 1em; font-weight: bold; margin-top: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .btn-csv-large:active { transform: scale(0.98); }
+        
+        /* 履歴全削除ボタン（赤色） */
+        .btn-clear { background: #ff4d4d; color: white; border: none; padding: 12px 16px; border-radius: 6px; cursor: pointer; margin-top: 10px; width: 100%; font-size: 1em; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .btn-clear:active { transform: scale(0.98); }
 
-        /* 💡 ブラウザの英語を消すための自作ポップアップ（モーダル）のCSS */
+        /* 💡 ① ブラウザの余計な文字を消すための自作ポップアップ（共通スタイル） */
         .custom-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 9999; }
         .custom-modal { background: white; padding: 20px; border-radius: 12px; width: 85%; max-width: 350px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
-        .modal-title { font-size: 1.1em; font-weight: bold; margin-bottom: 10px; color: #333; }
+        .modal-title { font-size: 1.1em; font-weight: bold; margin-bottom: 12px; color: #333; }
         .modal-body { font-size: 0.95em; color: #666; margin-bottom: 20px; word-break: break-all; max-height: 100px; overflow-y: auto; background: #f9f9f9; padding: 8px; border-radius: 6px; }
         .modal-buttons { display: flex; gap: 10px; justify-content: center; }
         .btn-modal { flex: 1; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.95em; }
         .btn-modal-cancel { background: #eee; color: #333; }
+        .btn-modal-ok { background: #2b78e4; color: white; }
         .btn-modal-delete { background: #ff4d4d; color: white; }
     </style>
 </head>
@@ -67,22 +77,47 @@
     </div>
 
     <div id="history-container">
-        <h3>
-            <span>読み取り履歴 (長押しで削除)</span>
-            <button class="btn-csv" onclick="exportCSV()">CSV保存</button>
-        </h3>
+        <h3>読み取り履歴 (長押しで削除)</h3>
         <ul id="history-list"></ul>
-        <button class="btn-clear" onclick="clearAllHistory()">履歴をすべて削除</button>
+        
+        <!-- 💡 ③ CSV保存ボタンを大型化してここに配置 -->
+        <button class="btn-csv-large" onclick="openCsvModal()">📄 CSV形式で保存する</button>
+        <!-- 履歴全削除ボタン -->
+        <button class="btn-clear" onclick="openClearModal()">🗑️ 履歴をすべて削除</button>
     </div>
 
-    <!-- 💡 自作のカスタムポップアップ画面（初期状態は表示オフ） -->
-    <div id="customModal" class="custom-modal-overlay" style="display: none;">
+    <!-- 💡 ① 自作ポップアップその１：長押し削除用 -->
+    <div id="deleteModal" class="custom-modal-overlay" style="display: none;">
         <div class="custom-modal">
             <div class="modal-title">履歴を削除しますか？</div>
-            <div id="modalContent" class="modal-body"></div>
+            <div id="deleteModalContent" class="modal-body"></div>
             <div class="modal-buttons">
-                <button class="btn-modal btn-modal-cancel" onclick="closeModal()">キャンセル</button>
+                <button class="btn-modal btn-modal-cancel" onclick="closeAllModals()">キャンセル</button>
                 <button id="modalDeleteBtn" class="btn-modal btn-modal-delete">削除</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 💡 ① 自作ポップアップその２：CSV保存確認用 -->
+    <div id="csvModal" class="custom-modal-overlay" style="display: none;">
+        <div class="custom-modal">
+            <div class="modal-title">CSV保存</div>
+            <div class="modal-body" style="background: none; padding: 0;">履歴データをCSVファイルとしてスマホに保存しますか？</div>
+            <div class="modal-buttons">
+                <button class="btn-modal btn-modal-cancel" onclick="closeAllModals()">キャンセル</button>
+                <button class="btn-modal btn-modal-ok" onclick="executeExportCSV()">保存する</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 💡 ① 自作ポップアップその３：履歴全削除確認用 -->
+    <div id="clearModal" class="custom-modal-overlay" style="display: none;">
+        <div class="custom-modal">
+            <div class="modal-title">確認</div>
+            <div class="modal-body" style="background: none; padding: 0; color: #ff4d4d; font-weight: bold;">すべての読み取り履歴が消去されます。本当によろしいですか？</div>
+            <div class="modal-buttons">
+                <button class="btn-modal btn-modal-cancel" onclick="closeAllModals()">キャンセル</button>
+                <button class="btn-modal btn-modal-delete" onclick="executeClearAllHistory()">すべて削除</button>
             </div>
         </div>
     </div>
@@ -94,10 +129,12 @@
         const loadingMessage = document.getElementById("loading-message");
         const historyList = document.getElementById("history-list");
         
-        // ポップアップ（モーダル）用の要素
-        const customModal = document.getElementById("customModal");
-        const modalContent = document.getElementById("modalContent");
+        // ① 自作ポップアップ画面たちの要素取得
+        const deleteModal = document.getElementById("deleteModal");
+        const deleteModalContent = document.getElementById("deleteModalContent");
         const modalDeleteBtn = document.getElementById("modalDeleteBtn");
+        const csvModal = document.getElementById("csvModal");
+        const clearModal = document.getElementById("clearModal");
         
         let lastReadCode = "";
         let lastReadTime = 0;
@@ -105,7 +142,7 @@
         let isScanning = false;
         let scanInterval;
         let longTouchTimer;
-        let deleteTargetIndex = null; // 削除対象の配列番号を一時保存する変数
+        let deleteTargetIndex = null; 
 
         window.onload = () => {
             renderHistory();
@@ -129,7 +166,7 @@
             scanBtn.innerText = "🛑 スキャンを停止する";
             scanBtn.style.background = "#ff4d4d";
             videoContainer.style.display = "block";
-            guide.className = "guide-box"; // 赤枠に戻す
+            guide.className = "guide-box"; 
             
             if (!video.srcObject) {
                 navigator.mediaDevices.getUserMedia({ 
@@ -175,7 +212,7 @@
                 }
 
                 if (barcodes.length > 0) {
-                    const qrData = barcodes[0].rawValue;
+                    const qrData = barcodes.rawValue;
                     const currentTime = Date.now();
                     
                     if (qrData !== lastReadCode || (currentTime - lastReadTime) > 3000) {
@@ -183,7 +220,7 @@
                         lastReadTime = currentTime;
                         
                         isScanning = false; 
-                        guide.classList.add("success"); // 緑枠にする
+                        guide.classList.add("success"); 
                         if (navigator.vibrate) navigator.vibrate(150);
                         
                         saveRecord(qrData);
@@ -191,7 +228,7 @@
                         setTimeout(() => {
                             if (videoContainer.style.display !== "none") {
                                 isScanning = true; 
-                                guide.classList.remove("success"); // 赤枠に戻す
+                                guide.classList.remove("success"); 
                             }
                         }, 2000);
                     }
@@ -204,6 +241,7 @@
         function saveRecord(text) {
             const history = JSON.parse(localStorage.getItem("qr_history")) || [];
             const now = new Date();
+            // 💡 ② 右詰め表示に合わせて、日時のテキスト形式をスッキリ整えました
             const timeString = `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
             
             history.unshift({ text: text, time: timeString, memo: "" });
@@ -219,16 +257,16 @@
             }
         }
 
-        // 長押しの判定開始（0.6秒触れ続けたら自作ポップアップを開く）
+        // 長押し判定処理
         function touchStart(index) {
             longTouchTimer = setTimeout(() => {
                 const history = JSON.parse(localStorage.getItem("qr_history")) || [];
                 const item = history[index];
                 if (!item) return;
 
-                deleteTargetIndex = index; // 削除するインデックスを記録
-                modalContent.innerText = item.text; // ポップアップにQR中身を表示
-                customModal.style.display = "flex"; // 自作ポップアップを表示
+                deleteTargetIndex = index;
+                deleteModalContent.innerText = item.text; 
+                deleteModal.style.display = "flex"; // 自作削除ポップアップを表示
             }, 600);
         }
 
@@ -236,13 +274,15 @@
             clearTimeout(longTouchTimer);
         }
 
-        // 自作ポップアップを閉じる処理
-        function closeModal() {
-            customModal.style.display = "none";
+        // ① 全ての自作ポップアップ画面を非表示にする共通関数
+        function closeAllModals() {
+            deleteModal.style.display = "none";
+            csvModal.style.display = "none";
+            clearModal.style.display = "none";
             deleteTargetIndex = null;
         }
 
-        // 自作ポップアップで「削除」を押した時の処理
+        // 自作ポップアップ内で、個別削除の確定ボタンが押された時の処理
         modalDeleteBtn.onclick = function() {
             if (deleteTargetIndex !== null) {
                 const history = JSON.parse(localStorage.getItem("qr_history")) || [];
@@ -250,31 +290,52 @@
                 localStorage.setItem("qr_history", JSON.stringify(history));
                 renderHistory();
             }
-            closeModal();
+            closeAllModals();
         };
 
-        function renderHistory() {
-            const history = JSON.parse(localStorage.getItem("qr_history")) || [];
-            historyList.innerHTML = history.map((item, index) => `
-                <li ontouchstart="touchStart(${index})" ontouchend="touchEnd()" ontouchmove="touchEnd()">
-                    <span class="time">⏰ 読み取り時間: ${item.time}</span>
-                    <div class="content">${item.text.startsWith('http') ? `<a href="${item.text}" target="_blank">${item.text}</a>` : item.text}</div>
-                    <div class="memo-area" onclick="event.stopPropagation();">
-                        <input type="text" class="memo-input" placeholder="メモを入力..." value="${item.memo || ''}" onchange="updateMemo(${index}, this.value)">
-                    </div>
-                </li>
-            `).join('');
-        }
-
-        // CSVエクスポート処理（読み取りの早い順に並び替え ＆ 保存通知つき）
-        function exportCSV() {
+        // ① CSV保存ボタンが押された時に、自作ポップアップを開く
+        function openCsvModal() {
             const history = JSON.parse(localStorage.getItem("qr_history")) || [];
             if (history.length === 0) {
                 alert("出力する履歴がありません。");
                 return;
             }
+            csvModal.style.display = "flex";
+        }
 
-            // 💡 画面（新しい順）とは逆の「読み取りが早い順」にするため、配列のコピーを反転させる
+        // ① 履歴全削除ボタンが押された時に、自作ポップアップを開く
+        function openClearModal() {
+            const history = JSON.parse(localStorage.getItem("qr_history")) || [];
+            if (history.length === 0) {
+                alert("削除する履歴がありません。");
+                return;
+            }
+            clearModal.style.display = "flex";
+        }
+
+        // 💡 ② ご要望の表示順（内容 ➔ メモ ➔ 右詰め日時）にレイアウトを組み替える処理
+        function renderHistory() {
+            const history = JSON.parse(localStorage.getItem("qr_history")) || [];
+            historyList.innerHTML = history.map((item, index) => `
+                <li ontouchstart="touchStart(${index})" ontouchend="touchEnd()" ontouchmove="touchEnd()">
+                    <!-- 上段：読み取り内容 -->
+                    <div class="content">${item.text.startsWith('http') ? `<a href="${item.text}" target="_blank">${item.text}</a>` : item.text}</div>
+                    <!-- 中段：メモ欄 -->
+                    <div class="memo-area" onclick="event.stopPropagation();">
+                        <input type="text" class="memo-input" placeholder="メモを入力..." value="${item.memo || ''}" onchange="updateMemo(${index}, this.value)">
+                    </div>
+                    <!-- 下段：右詰めされた日時 -->
+                    <span class="time">⏰ ${item.time}</span>
+                </li>
+            `).join('');
+        }
+
+        // ①＋④ 自作ポップアップで「保存する」が押された瞬間に走る、CSVダウンロードの本体処理
+        function executeExportCSV() {
+            closeAllModals(); // ポップアップを閉じる
+            
+            const history = JSON.parse(localStorage.getItem("qr_history")) || [];
+            // 💡 画面とは逆の「読み取りが早い順（古いデータが先頭）」にするため配列を反転
             const csvHistory = [...history].reverse();
 
             let csvContent = "\uFEFF日時,QRコード内容,メモ\n"; 
@@ -300,15 +361,15 @@
             link.click();
             document.body.removeChild(link);
 
-            // 💡 CSVファイルが生成された直後に通知画面を表示する
+            // 💡 保存が完了したことをユーザーに知らせるポップアップ通知
             alert("ダウンロードフォルダに「" + fileName + "」を保存しました。");
         }
 
-        function clearAllHistory() {
-            if (confirm("本当に履歴をすべて削除しますか？")) {
-                localStorage.removeItem("qr_history");
-                renderHistory();
-            }
+        // ① 自作ポップアップで「すべて削除」が押された瞬間に走る処理
+        function executeClearAllHistory() {
+            closeAllModals(); // 自作ポップアップを閉じる
+            localStorage.removeItem("qr_history"); // スマホ内の履歴データを全消去
+            renderHistory(); // 画面を空っぽに更新
         }
     </script>
 </body>
