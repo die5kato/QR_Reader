@@ -9,48 +9,23 @@
         #video-container, #history-container { width: 100%; max-width: 500px; margin: 0 auto; box-sizing: border-box; }
         #video-wrapper { position: relative; width: 100%; padding-top: 75%; background: #000; border-radius: 8px; overflow: hidden; margin-bottom: 15px; }
         video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
-        
-        /* 枠線の初期状態（赤色） */
         .guide-box { position: absolute; top: 50%; left: 50%; width: 60%; height: 60%; border: 4px solid #ff4d4d; transform: translate(-50%, -50%); border-radius: 8px; box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5); pointer-events: none; transition: border-color 0.2s; }
-        /* 読込成功時の緑色クラス */
         .guide-box.success { border-color: #00c853; }
-        
         #loading-message { margin: 20px 0; font-weight: bold; }
         #history-container { margin-top: 15px; text-align: left; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         h1 { font-size: 1.3em; color: #333; margin-bottom: 10px; }
         h3 { margin-top: 0; border-bottom: 2px solid #333; padding-bottom: 5px; font-size: 1.1em; }
         ul { list-style: none; padding: 0; margin: 0; }
-        
-        /* 💡 履歴の上下余白（padding）を極限まで小さく（6px）しました */
-        li { padding: 6px 0; border-bottom: 1px solid #eee; word-break: break-all; -webkit-tap-highlight-color: rgba(0,0,0,0.05); }
-        li:active { background-color: #f5f5f5; }
-        li:last-child { border-bottom: none; }
-        
-        /* 💡 上段：読み取り内容（長い文字列でもゆったり横いっぱいに表示） */
+        li { padding: 6px 0; border-bottom: 1px solid #eee; word-break: break-all; }
         .content { font-size: 0.95em; color: #333; margin-bottom: 4px; font-weight: bold; display: block; }
-        
-        /* 💡 下段：メモ欄と日時を横並びにするための1行グループ */
         .memo-time-row { display: flex; gap: 15px; justify-content: space-between; align-items: center; width: 100%; }
-        
-        /* 💡 メモ入力欄：四角い枠線を消し、シンプルな「下線（アンダーライン）」のみにして極薄化 */
         .memo-area { flex: 1; display: flex; }
-        .memo-input { width: 100%; padding: 2px 0; border: none; border-bottom: 1px solid #ccc; border-radius: 0; font-size: 0.85em; background: transparent; }
+        .memo-input { width: 100%; padding: 2px 0; border: none; border-bottom: 1px solid #ccc; font-size: 0.85em; background: transparent; }
         .memo-input:focus { border-bottom-color: #2b78e4; outline: none; }
-
-        /* 💡 下段右：時計マークと年表示を省いた、スッキリ青色（小さめ）の日時 */
         .time { font-size: 0.75em; color: #2b78e4; font-weight: bold; white-space: nowrap; text-align: right; }
-        
-        /* ボタン共通のデザイン */
         .btn-main { background: #2b78e4; color: white; border: none; padding: 15px 20px; border-radius: 8px; cursor: pointer; width: 100%; font-size: 1.2em; font-weight: bold; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .btn-main:active { transform: scale(0.98); }
-        
-        .btn-csv-large { background: #00c853; color: white; border: none; padding: 12px 16px; border-radius: 6px; cursor: pointer; width: 100%; font-size: 1em; font-weight: bold; margin-top: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .btn-csv-large:active { transform: scale(0.98); }
-        
-        .btn-clear { background: #ff4d4d; color: white; border: none; padding: 12px 16px; border-radius: 6px; cursor: pointer; margin-top: 10px; width: 100%; font-size: 1em; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .btn-clear:active { transform: scale(0.98); }
-
-        /* 自作ポップアップ（モーダル） */
+        .btn-csv-large { background: #00c853; color: white; border: none; padding: 12px 16px; border-radius: 6px; cursor: pointer; width: 100%; font-size: 1em; font-weight: bold; margin-top: 15px; }
+        .btn-clear { background: #ff4d4d; color: white; border: none; padding: 12px 16px; border-radius: 6px; cursor: pointer; margin-top: 10px; width: 100%; font-size: 1em; font-weight: bold; }
         .custom-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 9999; }
         .custom-modal { background: white; padding: 20px; border-radius: 12px; width: 85%; max-width: 350px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
         .modal-title { font-size: 1.1em; font-weight: bold; margin-bottom: 12px; color: #333; }
@@ -63,12 +38,8 @@
     </style>
 </head>
 <body>
-
     <h1>QRコード スキャナー</h1>
-    
-    <!-- スキャン開始ボタン -->
     <button id="scan-btn" class="btn-main" onclick="toggleScan()">📸 タップして読込開始</button>
-    
     <div id="video-container" style="display: none;">
         <div id="loading-message">🎥 カメラ起動中...</div>
         <div id="video-wrapper">
@@ -76,17 +47,12 @@
             <div id="guide" class="guide-box"></div>
         </div>
     </div>
-
     <div id="history-container">
         <h3>読み取り履歴 (長押しで削除)</h3>
         <ul id="history-list"></ul>
-        
-        <!-- CSV保存ボタン ＆ 履歴全削除ボタン -->
         <button class="btn-csv-large" onclick="openCsvModal()">📄 CSV形式で保存する</button>
         <button class="btn-clear" onclick="openClearModal()">🗑️ 履歴をすべて削除</button>
     </div>
-
-    <!-- 自作ポップアップその１：長押し削除用 -->
     <div id="deleteModal" class="custom-modal-overlay" style="display: none;">
         <div class="custom-modal">
             <div class="modal-title">履歴を削除しますか？</div>
@@ -97,8 +63,6 @@
             </div>
         </div>
     </div>
-
-    <!-- 自作ポップアップその２：CSV保存確認用 -->
     <div id="csvModal" class="custom-modal-overlay" style="display: none;">
         <div class="custom-modal">
             <div class="modal-title">CSV保存</div>
@@ -109,8 +73,6 @@
             </div>
         </div>
     </div>
-
-    <!-- 自作ポップアップその３：履歴全削除確認用 -->
     <div id="clearModal" class="custom-modal-overlay" style="display: none;">
         <div class="custom-modal">
             <div class="modal-title">確認</div>
@@ -128,184 +90,83 @@
         const guide = document.getElementById("guide");
         const loadingMessage = document.getElementById("loading-message");
         const historyList = document.getElementById("history-list");
-        
         const deleteModal = document.getElementById("deleteModal");
         const deleteModalContent = document.getElementById("deleteModalContent");
         const modalDeleteBtn = document.getElementById("modalDeleteBtn");
         const csvModal = document.getElementById("csvModal");
         const clearModal = document.getElementById("clearModal");
-        
-        let lastReadCode = "";
-        let lastReadTime = 0;
-        let barcodeDetector;
-        let isScanning = false;
-        let scanInterval;
-        let longTouchTimer;
-        let deleteTargetIndex = null; 
+        let lastReadCode = "", lastReadTime = 0, barcodeDetector, isScanning = false, scanInterval, longTouchTimer, deleteTargetIndex = null;
 
         window.onload = () => {
             renderHistory();
-            if ('BarcodeDetector' in window) {
-                barcodeDetector = new BarcodeDetector({ formats: ['qr_code'] });
-            } else {
-                alert("お使いのブラウザは高速バーコード検出に対応していません。");
-            }
+            if ('BarcodeDetector' in window) { barcodeDetector = new BarcodeDetector({ formats: ['qr_code'] }); }
         };
 
-        function toggleScan() {
-            if (isScanning) {
-                stopScanMode();
-            } else {
-                startScanMode();
-            }
-        }
+        function toggleScan() { if (isScanning) { stopScanMode(); } else { startScanMode(); } }
 
         function startScanMode() {
-            isScanning = true;
-            scanBtn.innerText = "🛑 スキャンを停止する";
-            scanBtn.style.background = "#ff4d4d";
-            videoContainer.style.display = "block";
-            guide.className = "guide-box"; 
-            
+            isScanning = true; scanBtn.innerText = "🛑 スキャンを停止する"; scanBtn.style.background = "#ff4d4d"; videoContainer.style.display = "block"; guide.className = "guide-box";
             if (!video.srcObject) {
-                navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: "environment", width: 640, height: 480 } 
-                })
+                navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment", width: 640, height: 480 } })
                 .then((stream) => {
-                    video.srcObject = stream;
-                    video.setAttribute("playsinline", true);
-                    video.play();
-                    video.addEventListener('play', () => {
-                        loadingMessage.hidden = true;
-                        scanInterval = setInterval(scanFrame, 100);
-                    });
-                })
-                .catch((err) => {
-                    loadingMessage.innerText = "⚠️ カメラの起動に失敗しました。";
-                    stopScanMode();
-                });
-            } else {
-                video.play();
-                scanInterval = setInterval(scanFrame, 100);
-            }
+                    video.srcObject = stream; video.setAttribute("playsinline", true); video.play();
+                    video.addEventListener('play', () => { loadingMessage.hidden = true; scanInterval = setInterval(scanFrame, 100); });
+                }).catch((err) => { stopScanMode(); });
+            } else { video.play(); scanInterval = setInterval(scanFrame, 100); }
         }
 
         function stopScanMode() {
-            isScanning = false;
-            scanBtn.innerText = "📸 タップして読込開始";
-            scanBtn.style.background = "#2b78e4";
-            videoContainer.style.display = "none";
-            if (video.srcObject) {
-                video.pause();
-            }
+            isScanning = false; scanBtn.innerText = "📸 タップして読込開始"; scanBtn.style.background = "#2b78e4"; videoContainer.style.display = "none";
+            if (video.srcObject) { video.pause(); }
             clearInterval(scanInterval);
         }
 
         async function scanFrame() {
             if (!isScanning || video.paused || video.ended) return;
-            
             try {
-                let barcodes = [];
-                if (barcodeDetector) {
-                    barcodes = await barcodeDetector.detect(video);
-                }
-
+                let barcodes = []; if (barcodeDetector) { barcodes = await barcodeDetector.detect(video); }
                 if (barcodes.length > 0) {
-                    const qrData = barcodes[0].rawValue;
-                    const currentTime = Date.now();
-                    
+                    const qrData = barcodes[0].rawValue; const currentTime = Date.now();
                     if (qrData !== lastReadCode || (currentTime - lastReadTime) > 3000) {
-                        lastReadCode = qrData;
-                        lastReadTime = currentTime;
-                        
-                        isScanning = false; 
-                        guide.classList.add("success"); 
+                        lastReadCode = qrData; lastReadTime = currentTime; isScanning = false; guide.classList.add("success");
                         if (navigator.vibrate) navigator.vibrate(150);
-                        
                         saveRecord(qrData);
-
-                        setTimeout(() => {
-                            if (videoContainer.style.display !== "none") {
-                                isScanning = true; 
-                                guide.classList.remove("success"); 
-                            }
-                        }, 2000);
+                        setTimeout(() => { if (videoContainer.style.display !== "none") { isScanning = true; guide.classList.remove("success"); } }, 2000);
                     }
                 }
-            } catch (e) {
-                console.error(e);
-            }
+            } catch (e) { console.error(e); }
         }
-
         function saveRecord(text) {
-            const history = JSON.parse(localStorage.getItem("qr_history")) || [];
-            const now = new Date();
+            const history = JSON.parse(localStorage.getItem("qr_history")) || []; const now = new Date();
             const displayTime = `${now.getMonth()+1}/${now.getDate()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
             const fullTime = `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
-            
-            history.unshift({ text: text, time: displayTime, fullTime: fullTime, memo: "" });
-            localStorage.setItem("qr_history", JSON.stringify(history));
-            renderHistory();
+            history.unshift({ text: text, time: displayTime, fullTime: fullTime, memo: "" }); localStorage.setItem("qr_history", JSON.stringify(history)); renderHistory();
         }
 
         function updateMemo(index, value) {
             const history = JSON.parse(localStorage.getItem("qr_history")) || [];
-            if (history[index]) {
-                history[index].memo = value;
-                localStorage.setItem("qr_history", JSON.stringify(history));
-            }
+            if (history[index]) { history[index].memo = value; localStorage.setItem("qr_history", JSON.stringify(history)); }
         }
 
         function touchStart(index) {
             longTouchTimer = setTimeout(() => {
-                const history = JSON.parse(localStorage.getItem("qr_history")) || [];
-                const item = history[index];
-                if (!item) return;
-
-                deleteTargetIndex = index;
-                deleteModalContent.innerText = item.text; 
-                deleteModal.style.display = "flex"; 
+                const history = JSON.parse(localStorage.getItem("qr_history")) || []; const item = history[index]; if (!item) return;
+                deleteTargetIndex = index; deleteModalContent.innerText = item.text; deleteModal.style.display = "flex";
             }, 600);
         }
 
-        function touchEnd() {
-            clearTimeout(longTouchTimer);
-        }
-
-        function closeAllModals() {
-            deleteModal.style.display = "none";
-            csvModal.style.display = "none";
-            clearModal.style.display = "none";
-            deleteTargetIndex = null;
-        }
+        function touchEnd() { clearTimeout(longTouchTimer); }
+        function closeAllModals() { deleteModal.style.display = "none"; csvModal.style.display = "none"; clearModal.style.display = "none"; deleteTargetIndex = null; }
 
         modalDeleteBtn.onclick = function() {
             if (deleteTargetIndex !== null) {
-                const history = JSON.parse(localStorage.getItem("qr_history")) || [];
-                history.splice(deleteTargetIndex, 1);
-                localStorage.setItem("qr_history", JSON.stringify(history));
-                renderHistory();
+                const history = JSON.parse(localStorage.getItem("qr_history")) || []; history.splice(deleteTargetIndex, 1); localStorage.setItem("qr_history", JSON.stringify(history)); renderHistory();
             }
             closeAllModals();
         };
 
-        function openCsvModal() {
-            const history = JSON.parse(localStorage.getItem("qr_history")) || [];
-            if (history.length === 0) {
-                alert("出力する履歴がありません。");
-                return;
-            }
-            csvModal.style.display = "flex";
-        }
-
-        function openClearModal() {
-            const history = JSON.parse(localStorage.getItem("qr_history")) || [];
-            if (history.length === 0) {
-                alert("削除する履歴がありません。");
-                return;
-            }
-            clearModal.style.display = "flex";
-        }
+        function openCsvModal() { const history = JSON.parse(localStorage.getItem("qr_history")) || []; if (history.length === 0) { alert("出力する履歴がありません。"); return; } csvModal.style.display = "flex"; }
+        function openClearModal() { const history = JSON.parse(localStorage.getItem("qr_history")) || []; if (history.length === 0) { alert("削除する履歴がありません。"); return; } clearModal.style.display = "flex"; }
 
         function renderHistory() {
             const history = JSON.parse(localStorage.getItem("qr_history")) || [];
@@ -313,9 +174,7 @@
                 <li ontouchstart="touchStart(${index})" ontouchend="touchEnd()" ontouchmove="touchEnd()">
                     <div class="content">${item.text.startsWith('http') ? `<a href="${item.text}" target="_blank">${item.text}</a>` : item.text}</div>
                     <div class="memo-time-row">
-                        <div class="memo-area" onclick="event.stopPropagation();">
-                            <input type="text" class="memo-input" placeholder="メモを入力..." value="${item.memo || ''}" onchange="updateMemo(${index}, this.value)">
-                        </div>
+                        <div class="memo-area" onclick="event.stopPropagation();"><input type="text" class="memo-input" placeholder="メモを入力..." value="${item.memo || ''}" onchange="updateMemo(${index}, this.value)"></div>
                         <span class="time">${item.time}</span>
                     </div>
                 </li>
@@ -323,42 +182,16 @@
         }
 
         function executeExportCSV() {
-            closeAllModals(); 
-            const history = JSON.parse(localStorage.getItem("qr_history")) || [];
-            const csvHistory = [...history].reverse();
-
-            let csvContent = "\uFEFF日時,QRコード内容,メモ\n"; 
-            csvHistory.forEach(item => {
-                const csvTime = item.fullTime || item.time;
-                let row = `"${csvTime}","${item.text.replace(/"/g, '""')}","${(item.memo || '').replace(/"/g, '""')}"`;
-                csvContent += row + "\n";
-            });
-
-            const now = new Date();
-            const M = (now.getMonth() + 1).toString().padStart(2, '0');
-            const D = now.getDate().toString().padStart(2, '0');
-            const H = now.getHours().toString().padStart(2, '0');
-            const Min = now.getMinutes().toString().padStart(2, '0');
-            const fileName = `${M}${D}${H}${Min}.csv`;
-
-            const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-            const link = document.createElement("a");
-            const url = URL.createObjectURL(blob);
-            link.setAttribute("href", url);
-            link.setAttribute("download", fileName);
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-
+            closeAllModals(); const history = JSON.parse(localStorage.getItem("qr_history")) || []; const csvHistory = [...history].reverse();
+            let csvContent = "\uFEFF日時,QRコード内容,メモ\n";
+            csvHistory.forEach(item => { const csvTime = item.fullTime || item.time; let row = `"${csvTime}","${item.text.replace(/"/g, '""')}","${(item.memo || '').replace(/"/g, '""')}"`; csvContent += row + "\n"; });
+            const now = new Date(); const fileName = `${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}${now.getHours().toString().padStart(2, '0')}${now.getMinutes().toString().padStart(2, '0')}.csv`;
+            const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" }); const link = document.createElement("a"); const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url); link.setAttribute("download", fileName); link.style.visibility = 'hidden'; document.body.appendChild(link); link.click(); document.body.removeChild(link);
             alert("ダウンロードフォルダに「" + fileName + "」を保存しました。");
         }
 
-        function executeClearAllHistory() {
-            closeAllModals();
-            localStorage.removeItem("qr_history");
-            renderHistory();
-        }
+        function executeClearAllHistory() { closeAllModals(); localStorage.removeItem("qr_history"); renderHistory(); }
     </script>
 </body>
 </html>
