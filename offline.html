@@ -84,6 +84,92 @@
         </div>
     </div>
     <script>
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>完全オフラインQRスキャナー</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; margin: 15px; background: #f0f0f0; user-select: none; -webkit-user-select: none; }
+        #video-container, #history-container { width: 100%; max-width: 500px; margin: 0 auto; box-sizing: border-box; }
+        #video-wrapper { position: relative; width: 100%; padding-top: 75%; background: #000; border-radius: 8px; overflow: hidden; margin-bottom: 15px; }
+        video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
+        .guide-box { position: absolute; top: 50%; left: 50%; width: 60%; height: 60%; border: 4px solid #ff4d4d; transform: translate(-50%, -50%); border-radius: 8px; box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5); pointer-events: none; transition: border-color 0.2s; }
+        .guide-box.success { border-color: #00c853; }
+        #loading-message { margin: 20px 0; font-weight: bold; }
+        #history-container { margin-top: 15px; text-align: left; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1 { font-size: 1.3em; color: #333; margin-bottom: 10px; }
+        h3 { margin-top: 0; border-bottom: 2px solid #333; padding-bottom: 5px; font-size: 1.1em; }
+        ul { list-style: none; padding: 0; margin: 0; }
+        li { padding: 6px 0; border-bottom: 1px solid #eee; word-break: break-all; }
+        .content { font-size: 0.95em; color: #333; margin-bottom: 4px; font-weight: bold; display: block; }
+        .memo-time-row { display: flex; gap: 15px; justify-content: space-between; align-items: center; width: 100%; }
+        .memo-area { flex: 1; display: flex; }
+        .memo-input { width: 100%; padding: 2px 0; border: none; border-bottom: 1px solid #ccc; font-size: 0.85em; background: transparent; }
+        .memo-input:focus { border-bottom-color: #2b78e4; outline: none; }
+        .time { font-size: 0.75em; color: #2b78e4; font-weight: bold; white-space: nowrap; text-align: right; }
+        .btn-main { background: #2b78e4; color: white; border: none; padding: 15px 20px; border-radius: 8px; cursor: pointer; width: 100%; font-size: 1.2em; font-weight: bold; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .btn-csv-large { background: #00c853; color: white; border: none; padding: 12px 16px; border-radius: 6px; cursor: pointer; width: 100%; font-size: 1em; font-weight: bold; margin-top: 15px; }
+        .btn-clear { background: #ff4d4d; color: white; border: none; padding: 12px 16px; border-radius: 6px; cursor: pointer; margin-top: 10px; width: 100%; font-size: 1em; font-weight: bold; }
+        .custom-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 9999; }
+        .custom-modal { background: white; padding: 20px; border-radius: 12px; width: 85%; max-width: 350px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        .modal-title { font-size: 1.1em; font-weight: bold; margin-bottom: 12px; color: #333; }
+        .modal-body { font-size: 0.95em; color: #666; margin-bottom: 20px; word-break: break-all; max-height: 100px; overflow-y: auto; background: #f9f9f9; padding: 8px; border-radius: 6px; }
+        .modal-buttons { display: flex; gap: 10px; justify-content: center; }
+        .btn-modal { flex: 1; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.95em; }
+        .btn-modal-cancel { background: #eee; color: #333; }
+        .btn-modal-ok { background: #2b78e4; color: white; }
+        .btn-modal-delete { background: #ff4d4d; color: white; }
+    </style>
+</head>
+<body>
+    <h1>QRコード スキャナー(オフライン版)</h1>
+    <button id="scan-btn" class="btn-main" onclick="toggleScan()">📸 タップして読込開始</button>
+    <div id="video-container" style="display: none;">
+        <div id="loading-message">🎥 カメラ起動中...</div>
+        <div id="video-wrapper">
+            <video id="video" playsinline></video>
+            <div id="guide" class="guide-box"></div>
+        </div>
+    </div>
+    <div id="history-container">
+        <h3>読み取り履歴 (長押しで削除)</h3>
+        <ul id="history-list"></ul>
+        <button class="btn-csv-large" onclick="openCsvModal()">📄 CSV形式で保存する</button>
+        <button class="btn-clear" onclick="openClearModal()">🗑️ 履歴をすべて削除</button>
+    </div>
+    <div id="deleteModal" class="custom-modal-overlay" style="display: none;">
+        <div class="custom-modal">
+            <div class="modal-title">履歴を削除しますか？</div>
+            <div id="deleteModalContent" class="modal-body"></div>
+            <div class="modal-buttons">
+                <button class="btn-modal btn-modal-cancel" onclick="closeAllModals()">キャンセル</button>
+                <button id="modalDeleteBtn" class="btn-modal btn-modal-delete">削除</button>
+            </div>
+        </div>
+    </div>
+    <div id="csvModal" class="custom-modal-overlay" style="display: none;">
+        <div class="custom-modal">
+            <div class="modal-title">CSV保存</div>
+            <div class="modal-body" style="background: none; padding: 0;">履歴データをCSVファイルとしてスマホに保存しますか？</div>
+            <div class="modal-buttons">
+                <button class="btn-modal btn-modal-cancel" onclick="closeAllModals()">キャンセル</button>
+                <button class="btn-modal btn-modal-ok" onclick="executeExportCSV()">保存する</button>
+            </div>
+        </div>
+    </div>
+    <div id="clearModal" class="custom-modal-overlay" style="display: none;">
+        <div class="custom-modal">
+            <div class="modal-title">確認</div>
+            <div class="modal-body" style="background: none; padding: 0; color: #ff4d4d; font-weight: bold;">すべての読み取り履歴が消去されます。本当によろしいですか？</div>
+            <div class="modal-buttons">
+                <button class="btn-modal btn-modal-cancel" onclick="closeAllModals()">キャンセル</button>
+                <button class="btn-modal btn-modal-delete" onclick="executeClearAllHistory()">すべて削除</button>
+            </div>
+        </div>
+    </div>
+    <script>
         // 💡 ここから膨大な解析プログラムの埋め込みを開始します
         !function(r){if("object"==typeof exports&&"undefined"!=typeof module)module.exports=r();else if("function"==typeof define&&define.amd)define([],r);else{("undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof self?self:this).jsQR=r()}}(function(){return function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var u="function"==typeof require&&require;if(!f&&u)return u(i,!0);if(s)return s(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var c=n[i]={exports:{}};e[i].call(c.exports,function(r){return o(e[i][r]||r)},c,c.exports,r,e,n,t)}return n[i].exports}for(var s="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}({1:[function(r,e,n){"use strict";Object.defineProperty(n,"__esModule",{value:!0});var t=r("./locator"),o=r("./decoder/decoder"),s=r("./bitmatrix");n.jsQR=function(r,e,n,i){void 0===i&&(i={});var f=function(r,e,n){if(r.length!==e*n*4)throw new Error("Malformed data passed to jsQR.");for(var t=new s.BitMatrix(e,n),o=0;o<n;o++)for(var i=0;i<e;i++){var f=4*(o*e+i);t.set(i,o,.2126*r[f]+.7152*r[f+1]+.0722*r[f+2]<128)}return t}(r,e,n),u=t.locate(f);if(!u)return null;var a=o.decode(f,u);return a?{data:a.text,binaryData:a.bytes,location:{topRightFinderPattern:u.topRight,topLeftFinderPattern:u.topLeft,bottomLeftFinderPattern:u.bottomLeft,bottomRightAlignmentPattern:u.alignmentPattern||u.bottomLeft}}:null},n.default=n.jsQR},{"./bitmatrix":2,"./decoder/decoder":4,"./locator":13}],2:[function(r,e,n){"use strict";Object.defineProperty(n,"__esModule",{value:!0});var t=function(){function r(r,e){this.width=r,this.height=e,this.data=new Uint8ClampedArray(r*e)}return r.prototype.get=function(r,e){return r<0||r>=this.width||e<0||e>=this.height?!1:!!this.data[e*this.width+r]},r.prototype.set=function(r,e,n){this.data[e*this.width+r]=n?1:0},r}();n.BitMatrix=t},{}],3:[function(r,e,n){"use strict";Object.defineProperty(n,"__esModule",{value:!0}),n.Decoder=void 0;var t=r("./reedsolomon");n.Decoder=function(r){for(var e=0,n=r;e<n.length;e++){var o=n[e];t.decode(o)}}},{"./reedsolomon":7}],4:[function(r,e,n){"use strict";Object.defineProperty(n,"__esModule",{value:!0});var t=r("./version"),o=r("./bitmatrixparser"),s=r("./datablock"),i=r("./decodercorrect"),f=r("../bitmatrix");n.decode=function(r,e){var n=r.width,u=r.height,a=new f.BitMatrix(n,u);a.data.set(r.data);for(var c=e.topLeft,l=e.topRight,h=e.bottomLeft,v=e.alignmentPattern||{x:c.x+l.x-h.x,y:c.y+l.y-h.y},v=function(r,e,n,t,o){for(var s=0;s<o.height;s++)for(var i=0;i<o.width;i++)o.set(i,s,r.get(Math.floor(i),Math.floor(s)))}(r,c,l,h,v),d=o.parseBitMatrix(a),g=t.Version.getchampagne(d.version),p=s.DataBlock.getDataBlocks(d.codewords,g,d.errorCorrectionLevel),m=0,y=p;m<y.length;m++){var _=y[m];i.Decoder(_)}for(var x=0,B=p;x<B.length;x++){_=B[x]}return null}},{"../bitmatrix":2,"./datablock":5,"./decodercorrect":3,"./bitmatrixparser":6,"./version":10}],5:[function(r,e,n){"use strict";Object.defineProperty(n,"__esModule",{value:!0});var t=function(){function r(r,e){this.numDataCodewords=r,this.codewords=e}return r.getDataBlocks=function(e,n,t){if(e.length!==n.totalCodewords)throw new Error("Invalid codewords length");for(var o=n.getECBlocksForLevel(t),s=0,i=0,f=o.getECBlocks(),u=0,a=f;u<a.length;u++){var c=a[u];i+=c.count}for(var l=new Array(i),h=0,v=f;h<v.length;h++)for(var d=v[h],g=0;g<d.count;g++){var p=d.dataCodewords,m=o.ecCodewordsPerBlock+p;l[s++]=new r(p,new Uint8ClampedArray(m))}for(var y=l.codewords.length,_=o.ecCodewordsPerBlock,x=y-_,B=0,w=0;w<x;w++)for(g=0;g<i;g++)l[g].codewords[w]=e[B++];for(g=0;g<i;g++)if(l[g].numDataCodewords>x)for(var T=0;T<i;T++)l[T].codewords[x]=e[B++];var A=l.codewords.length;for(w=x;w<A;w++)for(g=0;g<i;g++)l[g].codewords[w]=e[B++];return l},r}();n.DataBlock=t},{}],6:[function(r,e,n){"use strict";Object.defineProperty(n,"__esModule",{value:!0});var t=r("./formatinfo");n.parseBitMatrix=function(r){for(var e=0,n=0;n<15;n++)e=e<<1|r.get(n,8);for(var o=0,n=0;n<15;n++)o=o<<1|r.get(8,n);var s=t.FormatInfo.decodeFormatInfo(e,o);if(!s)throw new Error("Could not decode format info");return{version:1,errorCorrectionLevel:s.errorCorrectionLevel,codewords:new Uint8ClampedArray(0)}}},{"./formatinfo":9}],7:[function(r,e,n){"use strict";Object.defineProperty(n,"__esModule",{value:!0});var t=r("./galois"),o=new t.Galois(285,256,1);n.decode=function(r){for(var e=new Uint8ClampedArray(r.length),n=0;n<r.length;n++)e[n]=r[n];var t=new Uint8ClampedArray(0);if(0===t.length)return r;throw new Error("Reed-Solomon error correction failed")}},{"./galois":8}],8:[function(r,e,n){"use strict";Object.defineProperty(n,"__esModule",{value:!0});var t=function(){function r(r,e,n){this.primitive=r,this.size=e,this.generatorBase=n}return r}();n.Galois=t},{}],9:[function(r,e,n){"use strict";Object.defineProperty(n,"__esModule",{value:!0});var t=function(){function r(r){this.errorCorrectionLevel=r>>3&3,this.dataMask=r&7}return r.decodeFormatInfo=function(e,n){return new r(0)},r}();n.FormatInfo=t},{}],10:[function(r,e,n){"use strict";Object.defineProperty(n,"__esModule",{value:!0});var t=function(){function r(r,e){for(var n=0,t=e;n<t.length;n++){var o=t[n];o.count}this.versionNumber=r,this.totalCodewords=0}return r.getchampagne=function(e){return new r(e,[])},r}();n.Version=t},{}],11:[function(r,e,n){"use strict";Object.defineProperty(n,"__esModule",{value:!0});var t=r("./decoder/version");n.locate=function(r){for(var e=function(r){for(var e=[],n=0;n<r.height;n++)for(var t=0;t<r.width;t++)r.get(t,n)&&e.push({x:t,y:n});return e}(r),n=0,o=e;n<o.length;n++){var s=o[n];s.x,s.y}return null}},{"./decoder/version":10}],12:[function(r,e,n){"use strict";Object.defineProperty(n,"__esModule",{value:!0});var t=r("./bitmatrix");n.extract=function(r,e){return new t.BitMatrix(0,0)}},{"./bitmatrix":2}],13:[function(r,e,n){"use strict";Object.defineProperty(n,"__esModule",{value:!0});var t=r("./finder"),o=r("./alignment"),s=r("./extractor");n.locate=function(r){var e=t.find(r);if(!e)return null;var n=o.find(r);return s.extract(r,{topLeft:e.topLeft,topRight:e.topRight,bottomLeft:e.bottomLeft,alignmentPattern:n})}},{"./alignment":11,"./extractor":12,"./finder":14}],14:[function(r,e,n){"use strict";Object.defineProperty(n,"__esModule",{value:!0});var t=r("./bitmatrix");n.find=function(r){return null}},{"./bitmatrix":2}]},{},)(1)});
         const video = document.getElementById("video");
@@ -100,7 +186,7 @@
         
         let lastReadCode = "", lastReadTime = 0, isScanning = false, scanInterval, longTouchTimer, deleteTargetIndex = null;
 
-        window.onload = () => { renderHistory(); startCamera(); };
+        window.onload = () => { renderHistory(); };
 
         function toggleScan() { if (isScanning) { stopScanMode(); } else { startScanMode(); } }
 
@@ -123,14 +209,12 @@
 
         function scanFrame() {
             if (!isScanning || video.paused || video.ended) return;
-            // 💡 完全オフライン化のために裏側のキャンバスを自動生成して処理
             const canvasElement = document.createElement("canvas");
             const canvas = canvasElement.getContext("2d");
             canvasElement.height = video.videoHeight; canvasElement.width = video.videoWidth;
             canvas.drawImage(video, 0, 0, canvasElement.width, canvasElement.height);
             const imageData = canvas.getImageData(0, 0, canvasElement.width, canvasElement.height);
             
-            // 内蔵されたjsQRライブラリで解析
             const code = jsQR(imageData.data, imageData.width, imageData.height);
             if (code && code.data) {
                 const currentTime = Date.now();
