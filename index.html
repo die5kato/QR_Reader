@@ -120,6 +120,7 @@
                 <button class="btn-modal btn-modal-delete" onclick="executeClearAllHistory()">すべて削除</button>
             </div>
         </div>
+    </div>
     <script>
         const video = document.getElementById("video");
         const videoContainer = document.getElementById("video-container");
@@ -236,7 +237,6 @@
                 console.error(e);
             }
         }
-    </div>
         function saveRecord(text) {
             const history = JSON.parse(localStorage.getItem("qr_history")) || [];
             const now = new Date();
