@@ -129,7 +129,6 @@
         const loadingMessage = document.getElementById("loading-message");
         const historyList = document.getElementById("history-list");
         
-        // 自作ポップアップの要素取得
         const deleteModal = document.getElementById("deleteModal");
         const deleteModalContent = document.getElementById("deleteModalContent");
         const modalDeleteBtn = document.getElementById("modalDeleteBtn");
@@ -212,7 +211,7 @@
                 }
 
                 if (barcodes.length > 0) {
-                    const qrData = barcodes.rawValue;
+                    const qrData = barcodes[0].rawValue;
                     const currentTime = Date.now();
                     
                     if (qrData !== lastReadCode || (currentTime - lastReadTime) > 3000) {
@@ -237,12 +236,11 @@
                 console.error(e);
             }
         }
+
         function saveRecord(text) {
             const history = JSON.parse(localStorage.getItem("qr_history")) || [];
             const now = new Date();
-            // 💡 画面表示用には「年」と「マーク」を省いたスッキリした日時（例：7/20 01:19:30）を作成
             const displayTime = `${now.getMonth()+1}/${now.getDate()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
-            // 💡 CSV出力用に、裏側には「フルサイズの日時」も一緒に保存しておきます
             const fullTime = `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
             
             history.unshift({ text: text, time: displayTime, fullTime: fullTime, memo: "" });
@@ -258,7 +256,6 @@
             }
         }
 
-        // 長押し判定処理
         function touchStart(index) {
             longTouchTimer = setTimeout(() => {
                 const history = JSON.parse(localStorage.getItem("qr_history")) || [];
@@ -310,15 +307,11 @@
             clearModal.style.display = "flex";
         }
 
-        // 💡 画面上のレイアウトを2行に凝縮（上段：内容 / 下段：左メモ・右青日時）して出力する処理
         function renderHistory() {
             const history = JSON.parse(localStorage.getItem("qr_history")) || [];
             historyList.innerHTML = history.map((item, index) => `
                 <li ontouchstart="touchStart(${index})" ontouchend="touchEnd()" ontouchmove="touchEnd()">
-                    <!-- 上段：読み取り内容（長い文字列でも1行〜複数行で横いっぱいにゆったり表示） -->
                     <div class="content">${item.text.startsWith('http') ? `<a href="${item.text}" target="_blank">${item.text}</a>` : item.text}</div>
-                    
-                    <!-- 下段：1行のグループの中に「左側メモ」「右側日時」を配置 -->
                     <div class="memo-time-row">
                         <div class="memo-area" onclick="event.stopPropagation();">
                             <input type="text" class="memo-input" placeholder="メモを入力..." value="${item.memo || ''}" onchange="updateMemo(${index}, this.value)">
@@ -329,17 +322,13 @@
             `).join('');
         }
 
-        // CSVエクスポート処理（読み取りの早い順 ＆ 保存通知つき）
         function executeExportCSV() {
             closeAllModals(); 
-            
             const history = JSON.parse(localStorage.getItem("qr_history")) || [];
-            // 💡 読み取りが早い古いデータから順番に並び替える処理
             const csvHistory = [...history].reverse();
 
             let csvContent = "\uFEFF日時,QRコード内容,メモ\n"; 
             csvHistory.forEach(item => {
-                // CSVには見やすさのために年入りの正確な日時（fullTime）を出力します
                 const csvTime = item.fullTime || item.time;
                 let row = `"${csvTime}","${item.text.replace(/"/g, '""')}","${(item.memo || '').replace(/"/g, '""')}"`;
                 csvContent += row + "\n";
