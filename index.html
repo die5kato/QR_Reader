@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QRコードリーダー＆記録</title>
+    <!-- QRコード解析用の外部ライブラリ（GitHub経由なら安全に読み込めます） -->
+    <script src="https://jsdelivr.net"></script>
+    <style>
+        body { font-family: sans-serif; text-align: center; margin: 20px; background: #f0f0f0; }
+        #video-container, #history-container { width: 100%; max-width: 500px; margin: 0 auto; box-sizing: border-box; }
+        video { width: 100%; border-radius: 8px; background: #000; object-fit: cover; }
+        #canvas { display: none; }
+        #loading-message { margin: 20px 0; font-weight: bold; }
+        #history-container { margin-top: 20px; text-align: left; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1 { font-size: 1.5em; color: #333; }
+        h3 { margin-top: 0; border-bottom: 2px solid #333; padding-bottom: 5px; }
+        ul { list-style: none; padding: 0; margin: 0; }
+        li { padding: 12px 0; border-bottom: 1px solid #eee; word-break: break-all; }
+        li:last-child { border-bottom: none; }
+        .time { font-size: 0.85em; color: #2b78e4; font-weight: bold; display: block; margin-bottom: 4px; }
+        .content { font-size: 1em; color: #333; }
+        button { background: #ff4d4d; color: white; border: none; padding: 10px 16px; border-radius: 4px; cursor: pointer; margin-top: 15px; width: 100%; font-size: 1em; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <h1>QRコード スキャナー</h1>
+    
+    <div id="video-container">
+        <div id="loading-message">🎥 カメラを起動中...</div>
+        <canvas id="canvas" hidden></canvas>
+        <video id="video" playsinline></video>
+    </div>
+
+    <div id="history-container">
+        <h3>読み取り履歴（日時も保存中）</h3>
+        <ul id="history-list"></ul>
+        <button onclick="clearHistory()">履歴をすべて削除</button>
+    </div>
+
+    <script>
+        const video = document.getElementById("video");
+        const canvasElement = document.getElementById("canvas");
+        const canvas = canvasElement.getContext("2d");
+        const loadingMessage = document.getElementById("loading-message");
+        const historyList = document.getElementById("history-list");
+        
+        let lastReadCode = "";
+        let lastReadTime = 0;
+
+        window.onload = () => {
+            renderHistory();
+            startCamera();
+        };
+
+        function startCamera() {
+            // フルHD〜HDの高解像度を指定して認識率をアップ
+            const constraints = {
+                video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } }
+            };
+
+            navigator.mediaDevices.getUserMedia(constraints)
+            .then((stream) => {
+                video.srcObject = stream;
+                video.setAttribute("playsinline", true);
+                video.play();
+                requestAnimationFrame(tick);
+            })
+            .catch((err) => {
+                loadingMessage.innerText = "⚠️ カメラの起動に失敗しました。サイトの設定でカメラを許可してください。";
+                console.error(err);
+            });
+        }
+
+        function tick() {
+            if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                loadingMessage.hidden = true;
+                canvasElement.height = video.videoHeight;
+                canvasElement.width = video.videoWidth;
+                
+                canvas.drawImage(video, 0, 0, canvasElement.width, canvasElement.height);
+                
+                const imageData = canvas.getImageData(0, 0, canvasElement.width, canvasElement.height);
+                const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                    inversionAttempts: "dontInvert",
+                });
+
+                if (code) {
+                    const currentTime = Date.now();
+                    // 3秒間は同じQRコードを連続で読み込まない制限
+                    if (code.data !== lastReadCode || (currentTime - lastReadTime) > 3000) {
+                        lastReadCode = code.data;
+                        lastReadTime = currentTime;
+                        saveRecord(code.data);
+                    }
+                }
+            }
+            requestAnimationFrame(tick);
+        }
+
+        function saveRecord(text) {
+            const history = JSON.parse(localStorage.getItem("qr_history")) || [];
+            const now = new Date();
+            const timeString = `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+            
+            history.unshift({ text: text, time: timeString });
+            localStorage.setItem("qr_history", JSON.stringify(history));
+            
+            if (navigator.vibrate) navigator.vibrate(200); // 読み取り時にバイブ
+            
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const history = JSON.parse(localStorage.getItem("qr_history")) || [];
+            historyList.innerHTML = history.map(item => `
+                <li>
+                    <span class="time">⏰ 読み取り時間: ${item.time}</span>
+                    <div class="content">
+                        ${item.text.startsWith('http') ? `<a href="${item.text}" target="_blank">${item.text}</a>` : item.text}
+                    </div>
+                </li>
+            `).join('');
+        }
+
+        function clearHistory() {
+            if (confirm("本当に履歴をすべて削除しますか？")) {
+                localStorage.removeItem("qr_history");
+                renderHistory();
+            }
+        }
+    </script>
+</body>
+</html>
