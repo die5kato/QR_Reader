@@ -3,93 +3,150 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QRリーダー＆記録</title>
+    <title>高機能QRスキャナー</title>
     <style>
-        body { font-family: sans-serif; text-align: center; margin: 20px; background: #f0f0f0; }
+        body { font-family: sans-serif; text-align: center; margin: 20px; background: #f0f0f0; user-select: none; -webkit-user-select: none; }
         #video-container, #history-container { width: 100%; max-width: 500px; margin: 0 auto; box-sizing: border-box; }
-        #video-wrapper { position: relative; width: 100%; padding-top: 75%; background: #000; border-radius: 8px; overflow: hidden; }
+        #video-wrapper { position: relative; width: 100%; padding-top: 75%; background: #000; border-radius: 8px; overflow: hidden; margin-bottom: 15px; }
         video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
-        .guide-box { position: absolute; top: 50%; left: 50%; width: 60%; height: 60%; border: 3px solid #00c853; transform: translate(-50%, -50%); border-radius: 8px; box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5); pointer-events: none; }
+        
+        /* 💡 枠線の初期状態（赤色） */
+        .guide-box { position: absolute; top: 50%; left: 50%; width: 60%; height: 60%; border: 4px solid #ff4d4d; transform: translate(-50%, -50%); border-radius: 8px; box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5); pointer-events: none; transition: border-color 0.2s; }
+        /* 💡 読込成功時の緑色クラス */
+        .guide-box.success { border-color: #00c853; }
+        
         #loading-message { margin: 20px 0; font-weight: bold; }
         #history-container { margin-top: 20px; text-align: left; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        h1 { font-size: 1.5em; color: #333; }
-        h3 { margin-top: 0; border-bottom: 2px solid #333; padding-bottom: 5px; }
+        h1 { font-size: 1.4em; color: #333; margin-bottom: 10px; }
+        h3 { margin-top: 0; border-bottom: 2px solid #333; padding-bottom: 5px; display: flex; justify-content: space-between; align-items: center; }
         ul { list-style: none; padding: 0; margin: 0; }
-        li { padding: 12px 0; border-bottom: 1px solid #eee; word-break: break-all; }
+        
+        /* 💡 履歴の枠線と長押し時の視覚効果 */
+        li { padding: 15px 0; border-bottom: 1px solid #eee; word-break: break-all; -webkit-tap-highlight-color: rgba(0,0,0,0.05); }
+        li:active { background-color: #f5f5f5; }
+        li:last-child { border-bottom: none; }
+        
         .time { font-size: 0.85em; color: #2b78e4; font-weight: bold; display: block; margin-bottom: 4px; }
-        .content { font-size: 1em; color: #333; }
-        button { background: #ff4d4d; color: white; border: none; padding: 10px 16px; border-radius: 4px; cursor: pointer; margin-top: 15px; width: 100%; font-size: 1em; font-weight: bold; }
+        .content { font-size: 1em; color: #333; margin-bottom: 8px; font-weight: bold; }
+        
+        /* 💡 メモ入力欄のデザイン */
+        .memo-area { display: flex; gap: 8px; align-items: center; }
+        .memo-input { flex: 1; padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9em; }
+        .memo-input:focus { border-color: #2b78e4; outline: none; }
+        
+        /* ボタン類のデザイン */
+        .btn-main { background: #2b78e4; color: white; border: none; padding: 15px 20px; border-radius: 8px; cursor: pointer; width: 100%; font-size: 1.2em; font-weight: bold; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .btn-main:active { transform: scale(0.98); }
+        .btn-csv { background: #00c853; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.8em; font-weight: bold; }
+        .btn-clear { background: #ff4d4d; color: white; border: none; padding: 10px 16px; border-radius: 4px; cursor: pointer; margin-top: 15px; width: 100%; font-size: 1em; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <h1>QRコードスキャナー</h1>
+    <h1>QRコード スキャナー</h1>
     
-    <div id="video-container">
+    <!-- 💡 ① スキャン開始ボタン -->
+    <button id="scan-btn" class="btn-main" onclick="toggleScan()">📸 タップして読込開始</button>
+    
+    <div id="video-container" style="display: none;">
         <div id="loading-message">🎥 カメラ起動中...</div>
         <div id="video-wrapper">
             <video id="video" playsinline></video>
-            <div class="guide-box"></div>
+            <div id="guide" class="guide-box"></div>
         </div>
     </div>
 
     <div id="history-container">
-        <h3>読み取り履歴</h3>
+        <h3>
+            <span>読み取り履歴 (長押しで削除)</span>
+            <!-- 💡 ④ CSVエクスポートボタン -->
+            <button class="btn-csv" onclick="exportCSV()">CSV保存</button>
+        </h3>
         <ul id="history-list"></ul>
-        <button onclick="clearHistory()">履歴をすべて削除</button>
+        <button class="btn-clear" onclick="clearHistory()">履歴をすべて削除</button>
     </div>
 
     <script>
         const video = document.getElementById("video");
+        const videoContainer = document.getElementById("video-container");
+        const scanBtn = document.getElementById("scan-btn");
+        const guide = document.getElementById("guide");
         const loadingMessage = document.getElementById("loading-message");
         const historyList = document.getElementById("history-list");
         
         let lastReadCode = "";
         let lastReadTime = 0;
         let barcodeDetector;
+        let isScanning = false; // ① スキャン制御フラグ
+        let scanInterval;
+        let longTouchTimer; // ③-B 長押しタイマー
 
         window.onload = () => {
             renderHistory();
-            // 💡 スマホ標準の最強バーコード検出機能が使えるか確認
             if ('BarcodeDetector' in window) {
                 barcodeDetector = new BarcodeDetector({ formats: ['qr_code'] });
+            } else {
+                alert("お使いのブラウザは高速バーコード検出に対応していません。");
             }
-            startCamera();
         };
 
-        function startCamera() {
-            // 💡 起動を早くするため、解像度をあえて標準（手頃なサイズ）に落として軽量化
-            navigator.mediaDevices.getUserMedia({ 
-                video: { facingMode: "environment", width: 640, height: 480 } 
-            })
-            .then((stream) => {
-                video.srcObject = stream;
-                video.setAttribute("playsinline", true);
-                video.play();
-                // 💡 映像が始まったら即座に超高速スキャンを開始
-                video.addEventListener('play', () => {
-                    loadingMessage.hidden = true;
-                    setInterval(scanFrame, 100); // 0.1秒ごとにスマホのAIに丸投げ
-                });
-            })
-            .catch((err) => {
-                loadingMessage.innerText = "⚠️ カメラの起動に失敗しました。";
-                console.error(err);
-            });
+        // ① ボタンタップで読み込みを制御する関数
+        function toggleScan() {
+            if (isScanning) {
+                stopScanMode();
+            } else {
+                startScanMode();
+            }
         }
 
-        // 💡 スマホ本体のAIエンジンに画像を丸投げする超高速スキャン
+        function startScanMode() {
+            isScanning = true;
+            scanBtn.innerText = "🛑 スキャンを停止する";
+            scanBtn.style.background = "#ff4d4d";
+            videoContainer.style.display = "block";
+            guide.className = "guide-box"; // 赤枠に戻す
+            
+            if (!video.srcObject) {
+                navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: "environment", width: 640, height: 480 } 
+                })
+                .then((stream) => {
+                    video.srcObject = stream;
+                    video.setAttribute("playsinline", true);
+                    video.play();
+                    video.addEventListener('play', () => {
+                        loadingMessage.hidden = true;
+                        scanInterval = setInterval(scanFrame, 100);
+                    });
+                })
+                .catch((err) => {
+                    loadingMessage.innerText = "⚠️ カメラの起動に失敗しました。";
+                    stopScanMode();
+                });
+            } else {
+                video.play();
+                scanInterval = setInterval(scanFrame, 100);
+            }
+        }
+
+        function stopScanMode() {
+            isScanning = false;
+            scanBtn.innerText = "📸 タップして読込開始";
+            scanBtn.style.background = "#2b78e4";
+            videoContainer.style.display = "none";
+            if (video.srcObject) {
+                video.pause();
+            }
+            clearInterval(scanInterval);
+        }
+
         async function scanFrame() {
-            if (video.paused || video.ended) return;
+            if (!isScanning || video.paused || video.ended) return;
             
             try {
                 let barcodes = [];
                 if (barcodeDetector) {
-                    // Android標準の高速機能で解析
                     barcodes = await barcodeDetector.detect(video);
-                } else {
-                    // 万が一非対応だった場合の予備（古いスマホ用）
-                    return;
                 }
 
                 if (barcodes.length > 0) {
@@ -99,7 +156,20 @@
                     if (qrData !== lastReadCode || (currentTime - lastReadTime) > 3000) {
                         lastReadCode = qrData;
                         lastReadTime = currentTime;
+                        
+                        // 💡 ② 読み取り成功時の処理（緑枠化と2秒間停止）
+                        isScanning = false; 
+                        guide.classList.add("success"); // 緑枠にする
+                        if (navigator.vibrate) navigator.vibrate(150);
+                        
                         saveRecord(qrData);
+
+                        setTimeout(() => {
+                            if (videoContainer.style.display !== "none") {
+                                isScanning = true; // 2秒後に読込再開
+                                guide.classList.remove("success"); // 赤枠に戻す
+                            }
+                        }, 2000);
                     }
                 }
             } catch (e) {
@@ -107,28 +177,92 @@
             }
         }
 
+        // ③-A メモ枠を内包したデータ保存
         function saveRecord(text) {
             const history = JSON.parse(localStorage.getItem("qr_history")) || [];
             const now = new Date();
             const timeString = `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
             
-            history.unshift({ text: text, time: timeString });
+            history.unshift({ text: text, time: timeString, memo: "" });
             localStorage.setItem("qr_history", JSON.stringify(history));
-            
-            if (navigator.vibrate) navigator.vibrate(150); // 読めたら短くブルッ
             renderHistory();
+        }
+
+        // ③-A メモ編集の保存処理
+        function updateMemo(index, value) {
+            const history = JSON.parse(localStorage.getItem("qr_history")) || [];
+            if (history[index]) {
+                history[index].memo = value;
+                localStorage.setItem("qr_history", JSON.stringify(history));
+            }
+        }
+
+        // ③-B 長押しによる個別削除の判定処理
+        function touchStart(index) {
+            longTouchTimer = setTimeout(() => {
+                const history = JSON.parse(localStorage.getItem("qr_history")) || [];
+                const item = history[index];
+                if (!item) return;
+
+                if (confirm(`この履歴を削除しますか？\n\n【内容】\n${item.text}`)) {
+                    history.splice(index, 1);
+                    localStorage.setItem("qr_history", JSON.stringify(history));
+                    renderHistory();
+                }
+            }, 600); // 0.6秒以上の長押しでサブメニュー起動
+        }
+
+        function touchEnd() {
+            clearTimeout(longTouchTimer);
         }
 
         function renderHistory() {
             const history = JSON.parse(localStorage.getItem("qr_history")) || [];
-            historyList.innerHTML = history.map(item => `
-                <li>
+            // 💡 各履歴の枠内に ontouchstart などを仕込んで長押しを検知、下部にはメモ入力欄（memo-input）を配置しています
+            historyList.innerHTML = history.map((item, index) => `
+                <li ontouchstart="touchStart(${index})" ontouchend="touchEnd()" ontouchmove="touchEnd()">
                     <span class="time">⏰ 読み取り時間: ${item.time}</span>
-                    <div class="content">
-                        ${item.text.startsWith('http') ? `<a href="${item.text}" target="_blank">${item.text}</a>` : item.text}
+                    <div class="content">${item.text.startsWith('http') ? `<a href="${item.text}" target="_blank">${item.text}</a>` : item.text}</div>
+                    <div class="memo-area" onclick="event.stopPropagation();">
+                        <input type="text" class="memo-input" placeholder="メモを入力..." value="${item.memo || ''}" onchange="updateMemo(${index}, this.value)">
                     </div>
                 </li>
             `).join('');
+        }
+
+        // ④ CSVエクスポート処理（ファイル名をMMDDHHMMにする）
+        function exportCSV() {
+            const history = JSON.parse(localStorage.getItem("qr_history")) || [];
+            if (history.length === 0) {
+                alert("出力する履歴がありません。");
+                return;
+            }
+
+            // CSVのヘッダーと中身の構築（日時, QR内容, メモ）
+            let csvContent = "\uFEFF日時,QRコード内容,メモ\n"; 
+            history.forEach(item => {
+                let row = `"${item.time}","${item.text.replace(/"/g, '""')}","${(item.memo || '').replace(/"/g, '""')}"`;
+                csvContent += row + "\n";
+            });
+
+            // 💡 現在時刻から「MMDDHHMM」の文字列を作成
+            const now = new Date();
+            const M = (now.getMonth() + 1).toString().padStart(2, '0');
+            const D = now.getDate().toString().padStart(2, '0');
+            const H = now.getHours().toString().padStart(2, '0');
+            const Min = now.getMinutes().toString().padStart(2, '0');
+            const fileName = `${M}${D}${H}${Min}.csv`;
+
+            // スマホのブラウザにCSVファイルをダウンロードさせる処理
+            const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", fileName);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
 
         function clearHistory() {
